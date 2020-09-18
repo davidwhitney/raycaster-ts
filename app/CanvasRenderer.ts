@@ -14,25 +14,31 @@ export class CanvasRenderer {
         this._context2D = <CanvasRenderingContext2D>this._target.getContext("2d");
     }
 
-    render(columnData: RaySamplePoint[]): void {
+    render(columnData: RaySamplePoint[][]): void {
 
         this._context2D.clearRect(0, 0, this._resolution.width, this._resolution.height);
 
         for (var x = 0; x < columnData.length; x++) {
-            const samplePoint = columnData[x] || new RaySamplePoint(new Location2D(x, 0), 0, this._range);
+            const thisColumn = columnData[x];
+            thisColumn.reverse();
 
-            const sampleHeight = samplePoint.Surface.Height;
-            const sampleDistance = samplePoint.DistanceTraveled;
+            for (let samplePoint of thisColumn) {
 
-            const maxPossibleHeight = this._resolution.height * sampleHeight;
-            const height = maxPossibleHeight / (sampleDistance / 2.5);
+                samplePoint = samplePoint || new RaySamplePoint(new Location2D(x, 0), 0, this._range);
 
-            const verticalPadding = Math.floor((this._resolution.height - height) / 2);
-            const rgba = this.SelectTexture(samplePoint) || new Rgba32(255, 255, 255);
+                const sampleHeight = samplePoint.Surface.Height;
+                const sampleDistance = samplePoint.DistanceTraveled;
 
-            this._context2D.fillStyle = `rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${rgba.a})`;
-            this._context2D.fillRect(x, verticalPadding, 1, height);
+                const maxPossibleHeight = this._resolution.height * sampleHeight;
+                const height = maxPossibleHeight / (sampleDistance / 2.5);
 
+                const verticalPadding = Math.floor((this._resolution.height - height) / 2);
+                const rgba = this.SelectTexture(samplePoint) || new Rgba32(255, 255, 255);
+
+                this._context2D.fillStyle = `rgba(${rgba.r}, ${rgba.g}, ${rgba.b}, ${rgba.a})`;
+                this._context2D.fillRect(x, verticalPadding, 1, height);
+
+            }
         }
     }
 
@@ -41,7 +47,7 @@ export class CanvasRenderer {
         var brightness = 200 - ((200.00 / 100) * percentage);
 
         if (samplePoint.Surface.Type === "PLAYER") {
-            const texture = new Rgba32(255, 255, 50);
+            const texture = new Rgba32(255, 255, 1);
             texture.a = 1 - (percentage / 100);
             return texture;
         }

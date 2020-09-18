@@ -1,10 +1,11 @@
-import { CastDirection, Location2D, RaySamplePoint, Resolution, Surface } from "./types";
+import { CastDirection, Location2D, RaySamplePoint, Resolution, Surface, Location } from "./types";
+import { World } from "./World";
 
 export class Camera {
-    public World: string[];
     public MaxCameraRange: number;
     public location: Location2D;
 
+    private _world: World;
     private _resolution: Resolution;
     private _directionInDegrees: number = 0;
     private _focalLength: number;
@@ -12,16 +13,16 @@ export class Camera {
     public get directionInDegrees(): number { return this._directionInDegrees; }
     public set directionInDegrees(value) { this._directionInDegrees = value % 360; }
 
-    constructor(location: Location2D, resolution: Resolution, world: string[], range: number = 50, focalLength: number = 0.8) {
+    constructor(world: World, location: Location2D, resolution: Resolution, range: number = 50, focalLength: number = 0.8) {
+        this._world = world;
         this.location = location;
-        this.World = world;
         this.MaxCameraRange = range;
         this._resolution = resolution;
         this._focalLength = focalLength;
     }
 
-    Snapshot(): RaySamplePoint[] {
-        var result: RaySamplePoint[] = [];
+    Snapshot(): RaySamplePoint[][] {
+        var result: RaySamplePoint[][] = [];
 
         for (var column = 0; column < this._resolution.width; column++) {
             var x = column / this._resolution.width - 0.5;
@@ -33,7 +34,7 @@ export class Camera {
 
             const onlyRaysWithHeight = ray.filter(r => r.Surface?.Height > 0);
 
-            result[column] = onlyRaysWithHeight[onlyRaysWithHeight.length - 1];
+            result[column] = onlyRaysWithHeight;
         }
 
         return result;
@@ -48,7 +49,7 @@ export class Camera {
         while (true) {
             steps++;
             if (steps > this.MaxCameraRange) {
-                return [];
+                return rayPath;
             }
 
             rayPath.push(currentStep);
@@ -70,7 +71,7 @@ export class Camera {
                 : this.Inspect(stepY, 0, 1, currentStep.DistanceTraveled, castDirection);
 
 
-            if (shortestStep.Surface.HasNoHeight()) {
+            if (shortestStep.Surface.IsNotFullHeight()) {
                 currentStep = shortestStep;
                 continue;
             }
@@ -95,9 +96,20 @@ export class Camera {
         return new RaySamplePoint(location2D, length);
     }
 
-    SurfaceAt(x: number, y: number): Surface {
+    DetectSurface(location: Location): Surface {
 
-        const yContents = this.World[y];
+        const entityAtLoc = this._world.contents.allEntitesAt(location.x, location.y)[0];
+
+        if (entityAtLoc) {
+            return new Surface(0.5, "PLAYER");
+        }
+
+        // No entites, let's just find geometry from the game world.
+
+        var x = Math.floor(location.x);
+        var y = Math.floor(location.y);
+
+        const yContents = this._world.geometry[y];
         if (!yContents) {
             return Surface.Nothing;
         }
@@ -105,7 +117,7 @@ export class Camera {
         var glyph = yContents[x];
 
         if (glyph == "p") {
-            const surface = new Surface(1);
+            const surface = new Surface(0.5);
             surface.Type = "PLAYER";
             return surface;
         }
@@ -115,17 +127,16 @@ export class Camera {
             : Surface.Nothing;
     }
 
-    DetectSurface(xDouble: number, yDouble: number): Surface {
-        var x = Math.floor(xDouble);
-        var y = Math.floor(yDouble);
-        return this.SurfaceAt(x, y);
-    }
-
     Inspect(step: RaySamplePoint, shiftX: number, shiftY: number, distanceTraveled: number, castDirection: CastDirection): RaySamplePoint {
         var dx = castDirection.Cos < 0 ? shiftX : 0;
         var dy = castDirection.Sin < 0 ? shiftY : 0;
 
-        step.Surface = this.DetectSurface(step.Location.x - dx, step.Location.y - dy);
+        const location = {
+            x: step.Location.x - dx,
+            y: step.Location.y - dy
+        };
+
+        step.Surface = this.DetectSurface(location);
         step.DistanceTraveled = distanceTraveled + Math.sqrt(step.Length);
         return step;
     }

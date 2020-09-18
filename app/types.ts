@@ -8,7 +8,45 @@ export class Resolution {
     }
 }
 
-export class Location2D {
+export type Move = { deltaX: number, deltaY: number };
+
+export interface IPhysicalEntity {
+    readonly dimensions: IDimension;
+}
+
+export interface IDimension {
+    minX: number;
+    maxX: number;
+    minY: number;
+    maxY: number;
+};
+
+export class Dimension implements IDimension {
+    public minX: number;
+    public maxX: number;
+    public minY: number;
+    public maxY: number;
+
+    constructor(location: Location, size: Size) {
+        this.minX = location.x;
+        this.maxX = location.x + size.width;
+        this.minY = location.y;
+        this.maxY = location.y + size.height;
+    }
+}
+
+
+export interface Location {
+    x: number,
+    y: number
+};
+
+export type Size = {
+    width: number,
+    height: number
+};
+
+export class Location2D implements Location {
     x: number;
     y: number;
 
@@ -29,9 +67,11 @@ export class Surface {
     Type: SurfaceType = "WALL";
 
     HasNoHeight(): boolean { return this.Height <= 0; };
+    IsNotFullHeight(): boolean { return this.Height < 1; };
 
     constructor(height: number, type: SurfaceType = "WALL") {
         this.Height = height
+        this.Type = type;
     }
 
     public static Nothing: Surface = new Surface(0, "NOTHING");

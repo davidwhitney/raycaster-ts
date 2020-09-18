@@ -1,23 +1,19 @@
 import { CanvasRenderer } from "./CanvasRenderer";
-import { Location2D, Resolution, Rgba32 } from "./types";
+import { Location2D, Resolution } from "./types";
 import { Camera } from "./Camera";
+import { World } from "./World";
+import { PhysicalEntity } from "./GameEntity";
 
 const mapElement = <HTMLTextAreaElement>document.getElementById("map");
-const mapLines = mapElement.value.split("\n");
+
+const world = new World().setContents(mapElement.value);
+world.contents.locations.push(new PhysicalEntity({ x: 16, y: 10 }));
 
 const resolution = new Resolution(1024, 768);
-const camera = new Camera(new Location2D(10, 7), resolution, mapLines);
+const camera = new Camera(world, new Location2D(10, 7), resolution);
 const renderer = new CanvasRenderer("renderTarget", resolution, camera.MaxCameraRange);
 
-let updatingMap: boolean = false;
-
-mapElement.addEventListener("keydown", (evt) => {
-    updatingMap = true;
-    camera.World = mapElement.value.split("\n");
-    updatingMap = false;
-});
-
-document.addEventListener("keypress", (evt) => {
+function moveCamera(evt: KeyboardEvent) {
     var degrees = camera.directionInDegrees;
     const moveSpeed = 0.45;
     const turnSpeed = 2.5;
@@ -43,15 +39,22 @@ document.addEventListener("keypress", (evt) => {
             camera.directionInDegrees += turnSpeed;
             break;
     }
-});
+}
 
-function step(timestamp: number) {
-    if (!updatingMap) {
+function updateMap() {
+    world.setContents(mapElement.value);
+}
+
+function renderToCanvas(timestamp: number) {
+    if (!world.geometryUpdating) {
         const state = camera.Snapshot();
         renderer.render(state);
     }
 
-    window.requestAnimationFrame(step);
+    window.requestAnimationFrame(renderToCanvas);
 }
 
-window.requestAnimationFrame(step);
+mapElement.addEventListener("keyup", updateMap);
+mapElement.addEventListener("keydown", updateMap);
+document.addEventListener("keypress", moveCamera);
+window.requestAnimationFrame(renderToCanvas);
