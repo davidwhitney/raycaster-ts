@@ -1,22 +1,31 @@
-import { CastDirection, Location2D, RaySamplePoint, Surface } from "./types";
+import { CastDirection, Location2D, RaySamplePoint, Resolution, Surface } from "./types";
 
-export class RayCaster {
-    World: any;
-    MaxCameraRange: any;
+export class Camera {
+    public World: string[];
+    public MaxCameraRange: number;
+    public location: Location2D;
 
-    constructor(world: string[], maxCameraRange: number) {
+    private _resolution: Resolution;
+    private _directionInDegrees: number = 0;
+
+    public get directionInDegrees(): number { return this._directionInDegrees; }
+    public set directionInDegrees(value) { this._directionInDegrees = value % 360; }
+
+    constructor(location: Location2D, resolution: Resolution, world: string[], range: number = 50, focalLength: number = 0.8) {
+        this.location = location;
         this.World = world;
-        this.MaxCameraRange = maxCameraRange;
+        this.MaxCameraRange = range;
+        this._resolution = resolution;
     }
 
-    CastRays(origin: Location2D, renderWidth: number, directionInDegrees: number = 0): RaySamplePoint[] {
+    Snapshot(): RaySamplePoint[] {
         var result: RaySamplePoint[] = [];
 
-        for (var column = 0; column < renderWidth; column++) {
-            var x = column / renderWidth - 0.5;
+        for (var column = 0; column < this._resolution.width; column++) {
+            var x = column / this._resolution.width - 0.5;
 
-            var startPoint = new RaySamplePoint(origin);
-            var castDirection = this.ComputeDirection(directionInDegrees, x);
+            var startPoint = new RaySamplePoint(this.location);
+            var castDirection = this.ComputeDirection(this._directionInDegrees, x);
             var ray = this.Raycast(startPoint, castDirection);
 
             result[column] = ray[ray.length - 1];
@@ -35,13 +44,13 @@ export class RayCaster {
             var stepX = this.NextStepOnTheLine(
                 castDirection.Sin,
                 castDirection.Cos,
-                currentStep.Location.X,
-                currentStep.Location.Y);
+                currentStep.Location.x,
+                currentStep.Location.y);
 
             var stepY = this.NextStepOnTheLine(castDirection.Cos,
                 castDirection.Sin,
-                currentStep.Location.Y,
-                currentStep.Location.X,
+                currentStep.Location.y,
+                currentStep.Location.x,
                 true);
 
             var shortestStep = stepX.Length < stepY.Length
@@ -96,7 +105,7 @@ export class RayCaster {
         var dx = castDirection.Cos < 0 ? shiftX : 0;
         var dy = castDirection.Sin < 0 ? shiftY : 0;
 
-        step.Surface = this.DetectSurface(step.Location.X - dx, step.Location.Y - dy);
+        step.Surface = this.DetectSurface(step.Location.x - dx, step.Location.y - dy);
         step.DistanceTraveled = distanceTraveled + Math.sqrt(step.Length);
         return step;
     }
