@@ -22,14 +22,19 @@ export class Location2D {
     }
 };
 
+export type SurfaceType = "WALL" | "PLAYER" | "NOTHING";
+
 export class Surface {
     Height: number;
-    HasNoHeight(): boolean { return this.Height <= 0; };
-    public static Nothing: Surface = new Surface(0);
+    Type: SurfaceType = "WALL";
 
-    constructor(height: number) {
+    HasNoHeight(): boolean { return this.Height <= 0; };
+
+    constructor(height: number, type: SurfaceType = "WALL") {
         this.Height = height
     }
+
+    public static Nothing: Surface = new Surface(0, "NOTHING");
 }
 
 export class RaySamplePoint {
@@ -60,6 +65,7 @@ export class Rgba32 {
     r: number;
     g: number;
     b: number;
+    a: number = 1;
 
     constructor(r: number, g: number, b: number) {
         this.r = r;

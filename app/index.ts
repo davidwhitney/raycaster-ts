@@ -11,7 +11,7 @@ const renderer = new CanvasRenderer("renderTarget", resolution, camera.MaxCamera
 
 let updatingMap: boolean = false;
 
-mapElement.addEventListener("keypress", (evt) => {
+mapElement.addEventListener("keydown", (evt) => {
     updatingMap = true;
     camera.World = mapElement.value.split("\n");
     updatingMap = false;

@@ -7,6 +7,7 @@ export class Camera {
 
     private _resolution: Resolution;
     private _directionInDegrees: number = 0;
+    private _focalLength: number;
 
     public get directionInDegrees(): number { return this._directionInDegrees; }
     public set directionInDegrees(value) { this._directionInDegrees = value % 360; }
@@ -16,6 +17,7 @@ export class Camera {
         this.World = world;
         this.MaxCameraRange = range;
         this._resolution = resolution;
+        this._focalLength = focalLength;
     }
 
     Snapshot(): RaySamplePoint[] {
@@ -23,12 +25,15 @@ export class Camera {
 
         for (var column = 0; column < this._resolution.width; column++) {
             var x = column / this._resolution.width - 0.5;
+            const angle = Math.atan2(x, this._focalLength);
 
             var startPoint = new RaySamplePoint(this.location);
-            var castDirection = this.ComputeDirection(this._directionInDegrees, x);
+            var castDirection = this.ComputeDirection(this._directionInDegrees, angle);
             var ray = this.Raycast(startPoint, castDirection);
 
-            result[column] = ray[ray.length - 1];
+            const onlyRaysWithHeight = ray.filter(r => r.Surface?.Height > 0);
+
+            result[column] = onlyRaysWithHeight[onlyRaysWithHeight.length - 1];
         }
 
         return result;
@@ -38,7 +43,14 @@ export class Camera {
         var rayPath: RaySamplePoint[] = [];
         var currentStep = origin;
 
+        let steps = 0;
+
         while (true) {
+            steps++;
+            if (steps > this.MaxCameraRange) {
+                return [];
+            }
+
             rayPath.push(currentStep);
 
             var stepX = this.NextStepOnTheLine(
@@ -84,12 +96,20 @@ export class Camera {
     }
 
     SurfaceAt(x: number, y: number): Surface {
+
         const yContents = this.World[y];
         if (!yContents) {
             return Surface.Nothing;
         }
 
         var glyph = yContents[x];
+
+        if (glyph == "p") {
+            const surface = new Surface(1);
+            surface.Type = "PLAYER";
+            return surface;
+        }
+
         return glyph == '#'
             ? new Surface(1)
             : Surface.Nothing;
