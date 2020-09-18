@@ -5,7 +5,6 @@ export class BitmapRenderer {
     ImageHeight: number;
     ImageWidth: number;
 
-
     constructor(imageWidth: number, imageHeight: number, range: number) {
         this._range = range;
         this.ImageHeight = imageHeight;
